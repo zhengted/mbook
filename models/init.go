@@ -7,6 +7,10 @@ func init() {
 		new(Category),
 		new(Book),
 		new(BookCategory),
+		new(Attachment),
+		new(Document),
+		new(Member),
+		new(Relationship),
 	)
 
 }

@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"github.com/astaxie/beego/orm"
+	"time"
+)
 
 type AttachmentData struct {
 	Attachment
@@ -32,4 +35,19 @@ func (m *Attachment) TableName() string {
 
 func NewAttachment() *Attachment {
 	return &Attachment{}
+}
+
+func (m *Attachment) Insert() error {
+	_, err := orm.NewOrm().Insert(m)
+	return err
+}
+
+func (m *Attachment) Update() error {
+	_, err := orm.NewOrm().Update(m)
+	return err
+}
+
+func (m *Attachment) SelectByDocumentId(docId int) (attaches []*Attachment, err error) {
+	_, err = orm.NewOrm().QueryTable(m.TableName()).Filter("document_id", docId).OrderBy("-attachment_id").All(&attaches)
+	return
 }
