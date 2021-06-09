@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"github.com/astaxie/beego/orm"
+	"mbook/common"
 	"time"
 )
 
@@ -59,7 +60,28 @@ func (m *BookData) SelectByIdentify(identify string, memberId int) (result *Book
 	relationship := NewRelationship()
 	err = o.QueryTable(TNRelationship()).Filter("book_id", book.BookId).Filter("role_id", 0).One(relationship)
 	if err != nil {
+		return result, errors.New("Permission denied")
+	}
+
+	member, err := NewMember().Find(relationship.MemberId)
+	if err != nil {
 		return result, err
 	}
 
+	err = o.QueryTable(TNRelationship()).Filter("book_id", book.BookId).Filter("member_id", memberId).One(relationship)
+	if err != nil {
+		return
+	}
+
+	result = book.ToBookData()
+	result.CreateName = member.Account
+	result.MemberId = relationship.MemberId
+	result.RoleId = relationship.RoleId
+	result.RoleName = common.BookRole(result.RoleId)
+	result.RelationshipId = relationship.RelationshipId
+
+	document := NewDocument()
+	err = o.QueryTable(TNDocuments()).Filter("book_id", book.BookId).OrderBy("modify_time").One(document)
+
+	return
 }
