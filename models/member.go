@@ -128,3 +128,10 @@ func (m *Member) GetByUsername(username string) (member Member, err error) {
 	err = orm.NewOrm().QueryTable(TNMembers()).Filter("account", username).One(&member)
 	return
 }
+
+func (m *Member) IsAdministrator() bool {
+	if nil == m {
+		return false
+	}
+	return m.Role <= 0
+}

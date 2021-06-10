@@ -13,7 +13,12 @@ func init() {
 		new(Attachment),
 		new(Document),
 		new(Member),
+		new(DocumentStore),
+		new(Collection),
 		new(Relationship),
+		new(Fans),
+		new(Comments),
+		new(Score),
 	)
 
 }
