@@ -106,3 +106,19 @@ func (c *BaseController) SetMember(member models.Member) {
 		c.SetSession("uid", member.MemberId)
 	}
 }
+
+//关注或取消关注
+func (c *BaseController) SetFollow() {
+	if c.Member.MemberId == 0 {
+		c.JsonResult(1, "请先登录")
+	}
+	uid, _ := c.GetInt(":uid")
+	if uid == c.Member.MemberId {
+		c.JsonResult(1, "不能关注自己")
+	}
+	cancel, _ := new(models.Fans).FollowOrCancel(uid, c.Member.MemberId)
+	if cancel {
+		c.JsonResult(0, "已成功取消关注")
+	}
+	c.JsonResult(0, "已成功关注")
+}

@@ -3,7 +3,7 @@ package models
 import "github.com/astaxie/beego/orm"
 
 type Relationship struct {
-	RelationshipId int `orm:"pk,auto" json:"relationship_id"`
+	RelationshipId int `orm:"pk;auto" json:"relationship_id"`
 	MemberId       int `json:"member_id"`
 	BookId         int `json:"book_id"`
 	RoleId         int `json:"role_id"`

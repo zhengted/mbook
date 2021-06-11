@@ -74,7 +74,7 @@ func (m *Book) SearchBook(wd string, page, size int) (books []Book, cnt int, err
 
 	o := orm.NewOrm()
 	var count struct{ Cnt int }
-	_, err = o.Raw(sqlCount, wd, wd).QueryRows(&count)
+	err = o.Raw(sqlCount, wd, wd).QueryRow(&count)
 	if count.Cnt > 0 {
 		cnt = count.Cnt
 		_, err = o.Raw(sql+" limit ? offset ?", wd, wd, size, (page-1)*size).QueryRows(&books)
