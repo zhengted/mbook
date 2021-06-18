@@ -59,50 +59,50 @@ func (m *Comments) AddComments(uid, bookId int, content string) (err error) {
 //评论内容
 func (m *Comments) BookComments(page, size, bookId int) (comments []BookCommentsResult, err error) {
 
-	sql := `select book_id,uid,content,time_create from md_comments where book_id=? limit %v offset %v`
-	sql = fmt.Sprintf(sql, size, (page-1)*size)
 	o := orm.NewOrm()
+
+	sql := `select book_id,uid,content,time_create from ` + TNComments() + ` where book_id=? limit %v offset %v`
+	sql = fmt.Sprintf(sql, size, (page-1)*size)
 	_, err = o.Raw(sql, bookId).QueryRows(&comments)
 	if nil != err {
 		return
 	}
 
-	// 头像昵称
+	//头像昵称
 	uids := []string{}
 	for _, v := range comments {
 		uids = append(uids, strconv.Itoa(v.Uid))
 	}
-	uidStr := strings.Join(uids, ",")
-	sql = `select avatar,nickname from md_members where member_id in(` + uidStr + `)`
+	uidstr := strings.Join(uids, ",")
+	sql = `select member_id,avatar,nickname from md_members where member_id in(` + uidstr + `)`
 	members := []Member{}
 	_, err = o.Raw(sql).QueryRows(&members)
-	if err != nil {
-		fmt.Println("[error] get nickname and avatar err ", err)
+
+	if nil != err {
 		return
 	}
 	memberMap := make(map[int]Member)
 	for _, member := range members {
 		memberMap[member.MemberId] = member
 	}
-	for _, comment := range comments {
-		comment.Avatar = memberMap[comment.Uid].Avatar
-		comment.Nickname = memberMap[comment.Uid].Nickname
+	for k, v := range comments {
+		comments[k].Avatar = memberMap[v.Uid].Avatar
+		comments[k].Nickname = memberMap[v.Uid].Nickname
 	}
 
-	// 评分信息
-	sql = `select uid,score from md_score where book_id=? and uid in(` + uidStr + `)`
+	//评分
+	sql = `select uid,score from md_score where book_id=? and uid in(` + uidstr + `)`
 	scores := []Score{}
 	_, err = o.Raw(sql, bookId).QueryRows(&scores)
-	if err != nil {
-		fmt.Println("[error] get score err ", err)
+	if nil != err {
 		return
 	}
 	scoreMap := make(map[int]Score)
 	for _, score := range scores {
 		scoreMap[score.Uid] = score
 	}
-	for _, comment := range comments {
-		comment.Score = scoreMap[comment.Uid].Score
+	for k, v := range comments {
+		comments[k].Score = scoreMap[v.Uid].Score
 	}
 
 	return
