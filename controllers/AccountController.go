@@ -58,7 +58,7 @@ func (c *AccountController) Login() {
 			}
 		}
 	}
-	c.TplName = "account"
+	c.TplName = "account/login.html"
 	if c.Ctx.Input.IsPost() {
 		account := c.GetString("account")
 		password := c.GetString("password")

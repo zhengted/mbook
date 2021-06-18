@@ -19,7 +19,7 @@ func (m *DocumentStore) SelectField(docId interface{}, field string) string {
 	if field != "markdown" {
 		field = "content"
 	}
-	orm.NewOrm().QueryTable(TNDocuments()).Filter("document_id", docId).One(&ds, field)
+	orm.NewOrm().QueryTable(TNDocumentStore()).Filter("document_id", docId).One(&ds, field)
 	if field == "content" {
 		return ds.Content
 	}

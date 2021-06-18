@@ -17,7 +17,7 @@ type SettingController struct {
 	BaseController
 }
 
-// 基本信息
+//基本信息
 func (c *SettingController) Index() {
 	if c.Ctx.Input.IsPost() {
 		email := strings.TrimSpace(c.GetString("email", ""))
@@ -40,7 +40,7 @@ func (c *SettingController) Index() {
 	c.TplName = "setting/index.html"
 }
 
-// 上传头像
+//上传头像
 func (c *SettingController) Upload() {
 	file, moreFile, err := c.GetFile("image-file")
 	if err != nil {
@@ -52,6 +52,7 @@ func (c *SettingController) Upload() {
 	if !strings.EqualFold(ext, ".png") && !strings.EqualFold(ext, ".jpg") && !strings.EqualFold(ext, ".gif") && !strings.EqualFold(ext, ".jpeg") {
 		c.JsonResult(1, "图片格式异常")
 	}
+
 	x1, _ := strconv.ParseFloat(c.GetString("x"), 10)
 	y1, _ := strconv.ParseFloat(c.GetString("y"), 10)
 	w1, _ := strconv.ParseFloat(c.GetString("width"), 10)
@@ -72,13 +73,14 @@ func (c *SettingController) Upload() {
 		c.JsonResult(1, "保存失败")
 	}
 
-	// 剪切图片
+	//剪切图片
 	subImg, err := graphics.ImageCopyFromFile(filePath, x, y, width, height)
 	if err != nil {
 		c.JsonResult(1, "剪切失败")
 	}
 	os.Remove(filePath)
-	filePath = filepath.Join(common.WorkingDirectory, "uploads", time.Now().Format("201811"), fileName+ext)
+
+	filePath = filepath.Join(common.WorkingDirectory, "uploads", time.Now().Format("201911"), fileName+ext)
 	graphics.ImageResizeSaveFile(subImg, 120, 120, filePath)
 	err = graphics.SaveImage(filePath, subImg)
 	if err != nil {
@@ -97,16 +99,17 @@ func (c *SettingController) Upload() {
 		if err != nil {
 			c.JsonResult(1, "保存信息失败")
 		}
-		if strings.HasPrefix(avatar, "/uploads") {
+		if strings.HasPrefix(avatar, "/uploads/") {
 			os.Remove(filepath.Join(common.WorkingDirectory, avatar))
 		}
 		c.SetMember(*member)
 	}
 
 	if err := store.SaveToLocal("."+url, strings.TrimLeft(url, "./")); err != nil {
-		beego.Error(err)
+		beego.Error(err.Error())
 	} else {
 		url = "/" + strings.TrimLeft(url, "./")
 	}
+
 	c.JsonResult(0, "ok", url)
 }

@@ -8,7 +8,7 @@ import (
 
 type Category struct {
 	Id     int
-	Pid    int    //分类id
+	Pid    int    //分类id	为0的时候表示为父分类ID
 	Title  string `orm:"size(30);unique"`
 	Intro  string //介绍
 	Icon   string

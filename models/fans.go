@@ -13,7 +13,7 @@ type Fans struct {
 
 type FansData struct {
 	MemberId int
-	NickName string
+	Nickname string
 	Avatar   string
 	Account  string
 }
@@ -55,7 +55,7 @@ func (m *Fans) FollowOrCancel(mid, fansId int) (cancel bool, err error) {
 // 查询是否存在关注关系
 func (m *Fans) Relation(mid, fansId interface{}) (ok bool) {
 	var fans Fans
-	orm.NewOrm().QueryTable(TNFans()).Filter("member_id", mid).Filter("fans_id", fansId).One(fans)
+	orm.NewOrm().QueryTable(TNFans()).Filter("member_id", mid).Filter("fans_id", fansId).One(&fans)
 	return fans.Id != 0
 }
 

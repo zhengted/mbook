@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -36,12 +38,12 @@ func (m *Comments) AddComments(uid, bookId int, content string) (err error) {
 	second := 10
 	sql := `select id from ` + TNComments() + ` where uid=? and time_create>? order by id desc`
 	o := orm.NewOrm()
-	o.Raw(sql, uid, time.Now().Add(-time.Duration(second)*time.Second)).QueryRows(&comment)
+	o.Raw(sql, uid, time.Now().Add(-time.Duration(second)*time.Second)).QueryRow(&comment)
 	if comment.Id > 0 {
 		return errors.New(fmt.Sprintf("您距离上次发表评论时间小于 %v 秒，请稍后再发", second))
 	}
 	// 插入评论数据
-	sql = `insert into ` + TNDocuments() + `(uid,book_id,content,time_create) values(?,?,?,?)`
+	sql = `insert into ` + TNComments() + `(uid,book_id,content,time_create) values(?,?,?,?)`
 	_, err = o.Raw(sql, uid, bookId, content, time.Now()).Exec()
 	if err != nil {
 		beego.Error(err.Error())
@@ -56,9 +58,53 @@ func (m *Comments) AddComments(uid, bookId int, content string) (err error) {
 
 //评论内容
 func (m *Comments) BookComments(page, size, bookId int) (comments []BookCommentsResult, err error) {
-	sql := `select c.content,s.score,c.uid,c.time_create,m.avatar,m.nickname from ` + TNComments() + ` c left join ` + TNMembers() + ` m on m.member_id=c.uid left join ` + TNScore() + ` s on s.uid=c.uid and s.book_id=c.book_id where c.book_id=? order by c.id desc limit %v offset %v`
+
+	sql := `select book_id,uid,content,time_create from md_comments where book_id=? limit %v offset %v`
 	sql = fmt.Sprintf(sql, size, (page-1)*size)
-	_, err = orm.NewOrm().Raw(sql, bookId).QueryRows(&comments)
+	o := orm.NewOrm()
+	_, err = o.Raw(sql, bookId).QueryRows(&comments)
+	if nil != err {
+		return
+	}
+
+	// 头像昵称
+	uids := []string{}
+	for _, v := range comments {
+		uids = append(uids, strconv.Itoa(v.Uid))
+	}
+	uidStr := strings.Join(uids, ",")
+	sql = `select avatar,nickname from md_members where member_id in(` + uidStr + `)`
+	members := []Member{}
+	_, err = o.Raw(sql).QueryRows(&members)
+	if err != nil {
+		fmt.Println("[error] get nickname and avatar err ", err)
+		return
+	}
+	memberMap := make(map[int]Member)
+	for _, member := range members {
+		memberMap[member.MemberId] = member
+	}
+	for _, comment := range comments {
+		comment.Avatar = memberMap[comment.Uid].Avatar
+		comment.Nickname = memberMap[comment.Uid].Nickname
+	}
+
+	// 评分信息
+	sql = `select uid,score from md_score where book_id=? and uid in(` + uidStr + `)`
+	scores := []Score{}
+	_, err = o.Raw(sql, bookId).QueryRows(&scores)
+	if err != nil {
+		fmt.Println("[error] get score err ", err)
+		return
+	}
+	scoreMap := make(map[int]Score)
+	for _, score := range scores {
+		scoreMap[score.Uid] = score
+	}
+	for _, comment := range comments {
+		comment.Score = scoreMap[comment.Uid].Score
+	}
+
 	return
 }
 

@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/orm"
 	"html/template"
 	"mbook/common"
 	"mbook/models"
@@ -17,13 +14,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/orm"
 )
 
 type DocumentController struct {
 	BaseController
 }
 
-// 获取图书内容并判断权限
+//获取图书内容并判断权限
 func (c *DocumentController) getBookData(identify, token string) *models.BookData {
 	book, err := models.NewBook().Select("identify", identify)
 	if err != nil {
@@ -31,7 +32,7 @@ func (c *DocumentController) getBookData(identify, token string) *models.BookDat
 		c.Abort("404")
 	}
 
-	// 私有文档
+	//私有文档
 	if book.PrivatelyOwned == 1 && !c.Member.IsAdministrator() {
 		isOk := false
 		if c.Member != nil {
@@ -63,7 +64,7 @@ func (c *DocumentController) getBookData(identify, token string) *models.BookDat
 	return bookResult
 }
 
-// 图书目录&详情页
+//图书目录&详情页
 func (c *DocumentController) Index() {
 	token := c.GetString("token")
 	identify := c.Ctx.Input.Param(":key")
@@ -73,8 +74,7 @@ func (c *DocumentController) Index() {
 	tab := strings.ToLower(c.GetString("tab"))
 
 	bookResult := c.getBookData(identify, token)
-	if bookResult.BookId == 0 {
-		// 没有阅读权限
+	if bookResult.BookId == 0 { //没有阅读权限
 		c.Redirect(beego.URLFor("HomeController.Index"), 302)
 		return
 	}
@@ -94,7 +94,7 @@ func (c *DocumentController) Index() {
 	c.Data["MyScore"] = new(models.Score).BookScoreByUid(c.Member.MemberId, bookResult.BookId)
 }
 
-// 阅读器页面
+//阅读器页面
 func (c *DocumentController) Read() {
 	identify := c.Ctx.Input.Param(":key")
 	id := c.GetString(":id")
@@ -104,27 +104,31 @@ func (c *DocumentController) Read() {
 		c.Abort("404")
 	}
 
-	// 没开启匿名
+	//没开启匿名
 	if !c.EnableAnoymous && c.Member == nil {
-		c.Redirect(beego.URLFor("AccountCOntroller.Login"), 302)
+		c.Redirect(beego.URLFor("AccountController.Login"), 302)
 		return
 	}
 
 	bookData := c.getBookData(identify, token)
 
 	doc := models.NewDocument()
-	doc, err := doc.SelectByIdentify(bookData.BookId, id)
+	doc, err := doc.SelectByIdentify(bookData.BookId, id) //文档标识
 	if err != nil {
 		c.Abort("404")
 	}
+
+	if doc.BookId != bookData.BookId {
+		c.Abort("404")
+	}
+
 	if doc.Release != "" {
-		query, err := goquery.NewDocumentFromReader(bytes.NewBufferString(doc.Release)) // TODO:Comprehense this call
+		query, err := goquery.NewDocumentFromReader(bytes.NewBufferString(doc.Release))
 		if err != nil {
 			beego.Error(err)
 		} else {
 			query.Find("img").Each(func(i int, contentSelection *goquery.Selection) {
 				if _, ok := contentSelection.Attr("src"); ok {
-
 				}
 				if alt, _ := contentSelection.Attr("alt"); alt == "" {
 					contentSelection.SetAttr("alt", doc.DocumentName+" - 图"+fmt.Sprint(i+1))
@@ -144,31 +148,38 @@ func (c *DocumentController) Read() {
 		doc.AttachList = attach
 	}
 
-	// 图书阅读人次+1
-	if err := models.IncOrDec(models.TNBook(), "vcnt", fmt.Sprintf("book_id=%d", doc.BookId), true, 1); err != nil {
+	//图书阅读人次+1
+	if err := models.IncOrDec(models.TNBook(), "vcnt",
+		fmt.Sprintf("book_id=%v", doc.BookId),
+		true, 1,
+	); err != nil {
 		beego.Error(err.Error())
 	}
 
-	// 文档阅读人次+1
-	if err := models.IncOrDec(models.TNDocuments(), "vcnt", fmt.Sprintf("document_id=%d", doc.DocumentId), true, 1); err != nil {
-		beego.Error(err)
+	//文档阅读人次+1
+	if err := models.IncOrDec(models.TNDocuments(), "vcnt",
+		fmt.Sprintf("document_id=%v", doc.DocumentId),
+		true, 1,
+	); err != nil {
+		beego.Error(err.Error())
 	}
-	doc.Vcnt += 1
+
+	doc.Vcnt = doc.Vcnt + 1
 
 	if c.IsAjax() {
 		var data struct {
-			Id       int    `json:"doc_id"`
-			DocTitle string `json:"doc_title"`
-			Body     string `json:"body"`
-			Title    string `json:"title"`
-			View     int    `json:"view"`
-			UpdateAt string `json:"update_at"`
+			Id        int    `json:"doc_id"`
+			DocTitle  string `json:"doc_title"`
+			Body      string `json:"body"`
+			Title     string `json:"title"`
+			View      int    `json:"view"`
+			UpdatedAt string `json:"updated_at"`
 		}
 		data.DocTitle = doc.DocumentName
 		data.Body = doc.Release
 		data.Id = doc.DocumentId
 		data.View = doc.Vcnt
-		data.UpdateAt = doc.ModifyTime.Format("2021-01-02 15:04:05")
+		data.UpdatedAt = doc.ModifyTime.Format("2006-01-02 15:04:05")
 
 		c.JsonResult(0, "ok", data)
 	}
@@ -178,6 +189,7 @@ func (c *DocumentController) Read() {
 		beego.Error(err)
 		c.Abort("404")
 	}
+
 	c.Data["Bookmark"] = false
 	c.Data["Model"] = bookData
 	c.Data["Book"] = bookData
@@ -192,9 +204,9 @@ func (c *DocumentController) Read() {
 	c.TplName = "document/default_read.html"
 }
 
-// 编辑
+//编辑
 func (c *DocumentController) Edit() {
-	docId := 0
+	docId := 0 // 文档id
 
 	identify := c.Ctx.Input.Param(":key")
 	if identify == "" {
@@ -204,7 +216,7 @@ func (c *DocumentController) Edit() {
 	bookData := models.NewBookData()
 
 	var err error
-	// 权限验证
+	//权限验证
 	if c.Member.IsAdministrator() {
 		book, err := models.NewBook().Select("identify", identify)
 		if err != nil {
@@ -221,49 +233,51 @@ func (c *DocumentController) Edit() {
 			c.JsonResult(1, "权限错误")
 		}
 	}
+
 	c.TplName = "document/markdown_edit_template.html"
+
 	c.Data["Model"] = bookData
 	r, _ := json.Marshal(bookData)
 
 	c.Data["ModelResult"] = template.JS(string(r))
+
 	c.Data["Result"] = template.JS("[]")
 
 	// 编辑的文档
 	if id := c.GetString(":id"); id != "" {
 		if num, _ := strconv.Atoi(id); num > 0 {
 			docId = num
-		} else {
-			// 字符串
-			doc := models.NewDocument()
-			orm.NewOrm().QueryTable(doc.TableName()).Filter("identify", id).Filter("book_id", bookData.BookId).One(doc, "document_id")
+		} else { //字符串
+			var doc = models.NewDocument()
+			orm.NewOrm().QueryTable(doc).Filter("identify", id).Filter("book_id", bookData.BookId).One(doc, "document_id")
 			docId = doc.DocumentId
 		}
 	}
 
 	trees, err := models.NewDocument().GetMenu(bookData.BookId, docId, true)
 	if err != nil {
-		beego.Error("Get Menu error : ", err)
+		beego.Error("GetMenu error : ", err)
 	} else {
 		if len(trees) > 0 {
-			if jsTree, err := json.Marshal(trees); err != nil {
+			if jsTree, err := json.Marshal(trees); err == nil {
 				c.Data["Result"] = template.JS(string(jsTree))
-			} else {
-				c.Data["Result"] = template.JS("[]")
 			}
+		} else {
+			c.Data["Result"] = template.JS("[]")
 		}
 	}
 	c.Data["BaiDuMapKey"] = beego.AppConfig.DefaultString("baidumapkey", "")
+
 }
 
-// 创建文档
+//创建文档
 func (c *DocumentController) Create() {
-	identify := c.GetString("identify")
-	docIdentify := c.GetString("doc_identify")
+	identify := c.GetString("identify")        //图书标识
+	docIdentify := c.GetString("doc_identify") //新建的文档标识
 	docName := c.GetString("doc_name")
 	parentId, _ := c.GetInt("parent_id", 0)
 	docId, _ := c.GetInt("doc_id", 0)
 	bookIdentify := strings.TrimSpace(c.GetString(":key"))
-
 	o := orm.NewOrm()
 	if identify == "" {
 		c.JsonResult(1, "参数错误")
@@ -275,17 +289,19 @@ func (c *DocumentController) Create() {
 		if bookIdentify == "" {
 			c.JsonResult(1, "图书参数错误")
 		}
+
 		var book models.Book
 		o.QueryTable(models.TNBook()).Filter("Identify", bookIdentify).One(&book, "BookId")
 		if book.BookId == 0 {
-			c.JsonResult(1, "未找到图书")
+			c.JsonResult(1, "未找到该图书")
 		}
+
 		d, _ := models.NewDocument().SelectByIdentify(book.BookId, docIdentify)
 		if d.DocumentId > 0 && d.DocumentId != docId {
 			c.JsonResult(1, "文档标识重复")
 		}
 	} else {
-		docIdentify = fmt.Sprintf("data-%v", time.Now().Format("2021.11.22.01.01.01"))
+		docIdentify = fmt.Sprintf("date-%v", time.Now().Format("2019.11.02.01.01.05"))
 	}
 
 	bookId := 0
@@ -328,10 +344,7 @@ func (c *DocumentController) Create() {
 		c.JsonResult(1, "保存失败")
 	}
 
-	documentStore := models.DocumentStore{
-		DocumentId: int(documentId),
-		Markdown:   "",
-	}
+	documentStore := models.DocumentStore{DocumentId: int(documentId), Markdown: ""}
 	if documentStore.SelectField(documentId, "markdown") == "" {
 		if err := documentStore.InsertOrUpdate(); err != nil {
 			beego.Error(err)
@@ -340,6 +353,7 @@ func (c *DocumentController) Create() {
 	c.JsonResult(0, "ok", document)
 }
 
+//上传附件
 func (c *DocumentController) Upload() {
 	identify := c.GetString("identify")
 	docId, _ := c.GetInt("doc_id")
@@ -348,7 +362,6 @@ func (c *DocumentController) Upload() {
 	if identify == "" {
 		c.JsonResult(1, "参数错误")
 	}
-
 	name := "editormd-file-file"
 	file, moreFile, err := c.GetFile(name)
 	if err == http.ErrMissingFile {
@@ -358,14 +371,12 @@ func (c *DocumentController) Upload() {
 			c.JsonResult(1, "文件错误")
 		}
 	}
-
 	if err != nil {
 		c.JsonResult(1, err.Error())
 	}
 
 	defer file.Close()
 
-	// 取后缀名
 	ext := filepath.Ext(moreFile.Filename)
 	if ext == "" {
 		c.JsonResult(1, "文件格式错误")
@@ -376,6 +387,7 @@ func (c *DocumentController) Upload() {
 	}
 
 	bookId := 0
+	//如果是超级管理员，则不判断权限
 	if c.Member.IsAdministrator() {
 		book, err := models.NewBook().Select("identify", identify)
 		if err != nil {
@@ -390,12 +402,11 @@ func (c *DocumentController) Upload() {
 			}
 			c.JsonResult(6001, err.Error())
 		}
-		// 没有编辑权限
+		//没有编辑权限
 		if book.RoleId != common.BookEditor && book.RoleId != common.BookAdmin && book.RoleId != common.BookFounder {
 			c.JsonResult(1, "权限错误")
 		}
 		bookId = book.BookId
-
 	}
 
 	if docId > 0 {
@@ -408,7 +419,7 @@ func (c *DocumentController) Upload() {
 		}
 	}
 
-	fileName := strconv.FormatInt(time.Now().Unix(), 16)
+	fileName := strconv.FormatInt(time.Now().UnixNano(), 16)
 	filePath := filepath.Join(common.WorkingDirectory, "uploads", time.Now().Format("200601"), fileName+ext)
 	path := filepath.Dir(filePath)
 
@@ -425,11 +436,11 @@ func (c *DocumentController) Upload() {
 	attachment.CreateAt = c.Member.MemberId
 	attachment.Ext = ext
 	attachment.Path = strings.TrimPrefix(filePath, common.WorkingDirectory)
+	attachment.DocumentId = docId
 
 	if fileInfo, err := os.Stat(filePath); err == nil {
 		attachment.Size = float64(fileInfo.Size())
 	}
-
 	if docId > 0 {
 		attachment.DocumentId = docId
 	}
@@ -444,25 +455,23 @@ func (c *DocumentController) Upload() {
 	}
 
 	err = attachment.Insert()
+
 	if err != nil {
 		os.Remove(filePath)
 		c.JsonResult(1, "文件保存失败")
 	}
-
 	if attachment.HttpPath == "" {
 		attachment.HttpPath = beego.URLFor("DocumentController.DownloadAttachment", ":key", identify, ":attach_id", attachment.AttachmentId)
+
 		if err := attachment.Update(); err != nil {
 			c.JsonResult(1, "保存文件失败")
 		}
 	}
-	osspath := fmt.Sprintf("project/%v/%v", identify, fileName+filepath.Ext(attachment.HttpPath))
+	osspath := fmt.Sprintf("projects/%v/%v", identify, fileName+filepath.Ext(attachment.HttpPath))
+
 	osspath = "uploads/" + osspath
 	if err := store.SaveToLocal("."+attachment.HttpPath, osspath); err != nil {
-		beego.Error(err)
-	}
-	attachment.HttpPath = "/" + osspath
-	if err := store.SaveToLocal("."+attachment.HttpPath, osspath); err != nil {
-		beego.Error(err)
+		beego.Error(err.Error())
 	}
 	attachment.HttpPath = "/" + osspath
 
@@ -477,10 +486,11 @@ func (c *DocumentController) Upload() {
 	}
 	c.Ctx.Output.JSON(result, true, false)
 	c.StopRun()
-
 }
 
+//删除
 func (c *DocumentController) Delete() {
+
 	identify := c.GetString("identify")
 	docId, _ := c.GetInt("doc_id", 0)
 
@@ -502,37 +512,39 @@ func (c *DocumentController) Delete() {
 	if docId <= 0 {
 		c.JsonResult(1, "参数错误")
 	}
+
 	doc, err := models.NewDocument().SelectByDocId(docId)
 	if err != nil {
 		c.JsonResult(1, "删除失败")
 	}
 
-	// 如果文档所属图书错误
+	//如果文档所属图书错误
 	if doc.BookId != bookId {
 		c.JsonResult(1, "参数错误")
 	}
-	// 删除图书下的文档以及子文档
+	//删除图书下的文档以及子文档
 	err = doc.Delete(doc.DocumentId)
 	if err != nil {
 		beego.Error(err.Error())
 		c.JsonResult(1, "删除失败")
 	}
 
-	// 文档数量统计
-	models.NewBook().RefreshDocumentCount(bookId)
+	//文档数量统计
+	models.NewBook().RefreshDocumentCount(doc.BookId)
+
 	c.JsonResult(0, "ok")
 }
 
-// 保存文档并返回
+//保存文档并返回内容
 func (c *DocumentController) Content() {
-	identify := c.GetString("identify")
+	identify := c.Ctx.Input.Param(":key")
 	docId, err := c.GetInt("doc_id")
 	errMsg := "ok"
 	if err != nil {
 		docId, _ = strconv.Atoi(c.Ctx.Input.Param(":id"))
 	}
-
-	bookId := 0
+	bookId := 1
+	//权限验证
 	if c.Member.IsAdministrator() {
 		book, err := models.NewBook().Select("identify", identify)
 		if err != nil {
@@ -541,9 +553,11 @@ func (c *DocumentController) Content() {
 		bookId = book.BookId
 	} else {
 		bookData, err := models.NewBookData().SelectByIdentify(identify, c.Member.MemberId)
+
 		if err != nil || bookData.RoleId == common.BookGeneral {
 			c.JsonResult(1, "权限错误")
 		}
+		bookId = bookData.BookId
 	}
 
 	if docId <= 0 {
@@ -551,8 +565,10 @@ func (c *DocumentController) Content() {
 	}
 
 	documentStore := new(models.DocumentStore)
+
 	if !c.Ctx.Input.IsPost() {
 		doc, err := models.NewDocument().SelectByDocId(docId)
+
 		if err != nil {
 			c.JsonResult(1, "文档不存在")
 		}
@@ -560,12 +576,13 @@ func (c *DocumentController) Content() {
 		if err == nil {
 			doc.AttachList = attach
 		}
-		doc.Release = "" //AJAX请求，之间用MarkDown渲染，不用release字段
-		doc.Markdown = documentStore.SelectField(docId, "markdown")
+
+		doc.Release = "" //Ajax请求，之间用markdown渲染，不用release
+		doc.Markdown = documentStore.SelectField(doc.DocumentId, "markdown")
 		c.JsonResult(0, errMsg, doc)
 	}
 
-	// 更新文档内容
+	//更新文档内容
 	markdown := strings.TrimSpace(c.GetString("markdown", ""))
 	content := c.GetString("html")
 
@@ -573,6 +590,7 @@ func (c *DocumentController) Content() {
 	isCover := c.GetString("cover")
 
 	doc, err := models.NewDocument().SelectByDocId(docId)
+
 	if err != nil {
 		c.JsonResult(1, "读取文档错误")
 	}
@@ -607,12 +625,13 @@ func (c *DocumentController) Content() {
 	} else if isSummary {
 		errMsg = "true"
 	}
+
 	doc.Release = ""
 	c.JsonResult(0, errMsg, doc)
 }
 
-// 阅读页内搜索
-func (c DocumentController) Search() {
+//阅读页内搜索
+func (c *DocumentController) Search() {
 	identify := c.Ctx.Input.Param(":key")
 	token := c.GetString("token")
 	keyword := strings.TrimSpace(c.GetString("keyword"))
@@ -625,11 +644,10 @@ func (c DocumentController) Search() {
 		return
 	}
 	bookData := c.getBookData(identify, token)
-	docs, _, err := models.NewDocumentSearch().SearchDocument(keyword, bookData.BookId, 1, 1000)
+	docs, _, err := models.NewDocumentSearch().SearchDocument(keyword, bookData.BookId, 1, 10000)
 	if err != nil {
 		beego.Error(err)
 		c.JsonResult(1, "搜索结果错误")
 	}
 	c.JsonResult(0, keyword, docs)
-
 }
