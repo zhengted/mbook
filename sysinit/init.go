@@ -1,6 +1,8 @@
 package sysinit
 
-func init()  {
-	dbinit()
+func init() {
 	sysinit()
+	dbinit("w")
+	dbinit("r")
+	//dbinit("uaw","uar")
 }

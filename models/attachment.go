@@ -1,7 +1,6 @@
 package models
 
 import (
-	"github.com/astaxie/beego/orm"
 	"time"
 )
 
@@ -38,16 +37,16 @@ func NewAttachment() *Attachment {
 }
 
 func (m *Attachment) Insert() error {
-	_, err := orm.NewOrm().Insert(m)
+	_, err := GetOrm("w").Insert(m)
 	return err
 }
 
 func (m *Attachment) Update() error {
-	_, err := orm.NewOrm().Update(m)
+	_, err := GetOrm("w").Update(m)
 	return err
 }
 
 func (m *Attachment) SelectByDocumentId(docId int) (attaches []*Attachment, err error) {
-	_, err = orm.NewOrm().QueryTable(m.TableName()).Filter("document_id", docId).OrderBy("-attachment_id").All(&attaches)
+	_, err = GetOrm("w").QueryTable(m.TableName()).Filter("document_id", docId).OrderBy("-attachment_id").All(&attaches)
 	return
 }

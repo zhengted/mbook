@@ -249,7 +249,7 @@ func (c *DocumentController) Edit() {
 			docId = num
 		} else { //字符串
 			var doc = models.NewDocument()
-			orm.NewOrm().QueryTable(doc).Filter("identify", id).Filter("book_id", bookData.BookId).One(doc, "document_id")
+			models.GetOrm("w").QueryTable(doc).Filter("identify", id).Filter("book_id", bookData.BookId).One(doc, "document_id")
 			docId = doc.DocumentId
 		}
 	}
@@ -278,7 +278,7 @@ func (c *DocumentController) Create() {
 	parentId, _ := c.GetInt("parent_id", 0)
 	docId, _ := c.GetInt("doc_id", 0)
 	bookIdentify := strings.TrimSpace(c.GetString(":key"))
-	o := orm.NewOrm()
+	o := models.GetOrm("w")
 	if identify == "" {
 		c.JsonResult(1, "参数错误")
 	}

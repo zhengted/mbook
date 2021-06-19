@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"github.com/astaxie/beego/orm"
 )
 
 type Fans struct {
@@ -24,7 +23,7 @@ func (m *Fans) TableName() string {
 
 // 查询粉丝
 func (m *Fans) FansList(mid, page, pageSize int) (fans []FansData, total int64, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	total, _ = o.QueryTable(m.TableName()).Filter("member_id", mid).Count()
 	if total > 0 {
 		sql := fmt.Sprintf(
@@ -38,7 +37,7 @@ func (m *Fans) FansList(mid, page, pageSize int) (fans []FansData, total int64, 
 
 func (m *Fans) FollowOrCancel(mid, fansId int) (cancel bool, err error) {
 	var fans Fans
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	qs := o.QueryTable(m.TableName()).Filter("member_id", mid).Filter("fans_id", fansId)
 	qs.One(&fans)
 	if fans.Id > 0 {
@@ -55,13 +54,13 @@ func (m *Fans) FollowOrCancel(mid, fansId int) (cancel bool, err error) {
 // 查询是否存在关注关系
 func (m *Fans) Relation(mid, fansId interface{}) (ok bool) {
 	var fans Fans
-	orm.NewOrm().QueryTable(TNFans()).Filter("member_id", mid).Filter("fans_id", fansId).One(&fans)
+	GetOrm("w").QueryTable(TNFans()).Filter("member_id", mid).Filter("fans_id", fansId).One(&fans)
 	return fans.Id != 0
 }
 
 // 查询关注的人
 func (m *Fans) FollowList(fansId, page, pageSize int) (fans []FansData, total int64, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	total, _ = o.QueryTable(TNFans()).Filter("fans_id", fansId).Count() // 关注总数
 	if total > 0 {
 		sql := fmt.Sprintf(

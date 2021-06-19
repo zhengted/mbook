@@ -1,7 +1,5 @@
 package models
 
-import "github.com/astaxie/beego/orm"
-
 //文档编辑
 type DocumentStore struct {
 	DocumentId int    `orm:"pk;auto;column(document_id)"`
@@ -19,7 +17,7 @@ func (m *DocumentStore) SelectField(docId interface{}, field string) string {
 	if field != "markdown" {
 		field = "content"
 	}
-	orm.NewOrm().QueryTable(TNDocumentStore()).Filter("document_id", docId).One(&ds, field)
+	GetOrm("w").QueryTable(TNDocumentStore()).Filter("document_id", docId).One(&ds, field)
 	if field == "content" {
 		return ds.Content
 	}
@@ -28,7 +26,7 @@ func (m *DocumentStore) SelectField(docId interface{}, field string) string {
 
 // 插入或者更新
 func (m *DocumentStore) InsertOrUpdate(fields ...string) (err error) {
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	var one DocumentStore
 	o.QueryTable(TNDocumentStore()).Filter("document_id", m.DocumentId).One(&one, "document_id")
 	if one.DocumentId > 0 {
@@ -42,6 +40,6 @@ func (m *DocumentStore) InsertOrUpdate(fields ...string) (err error) {
 // 删除记录
 func (m DocumentStore) Delete(docId ...interface{}) {
 	if len(docId) > 0 {
-		orm.NewOrm().QueryTable(TNDocumentStore()).Filter("document_id__in", docId...).Delete()
+		GetOrm("w").QueryTable(TNDocumentStore()).Filter("document_id__in", docId...).Delete()
 	}
 }

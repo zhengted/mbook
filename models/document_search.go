@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"github.com/astaxie/beego/orm"
 	"mbook/utils/html2text"
 	"strconv"
 	"strings"
@@ -62,7 +61,7 @@ func (m *DocumentSearch) SearchDocument(keyword string, bookId int, page, size i
 	}
 	like := "%" + keyword + "%"
 
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	o.Raw(sqlCount, like, like).QueryRow(&count)
 	cnt = count.Cnt
 	limit := fmt.Sprintf(" limit %v offset %v", size, (page-1)*size)
@@ -98,7 +97,7 @@ func (m *DocumentSearch) GetDocsById(id []int, withoutCont ...bool) (docs []Docu
 	var rows []DocumentData
 	var cnt int64
 
-	cnt, err = orm.NewOrm().Raw(sql).QueryRows(&rows)
+	cnt, err = GetOrm("w").Raw(sql).QueryRows(&rows)
 	if cnt > 0 {
 		docMap := make(map[int]DocumentData)
 		for _, row := range rows {

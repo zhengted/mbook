@@ -54,7 +54,7 @@ func (m *Book) HomeDate(pageIndex, pageSIze, cid int, fields ...string) (books [
 
 	sql := fmt.Sprintf(sqlFmt, fieldStr)
 	sqlCount := fmt.Sprintf(sqlFmt, "count(*) cnt")
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	var params []orm.Params
 	if _, err = o.Raw(sqlCount).Values(&params); err == nil {
 		if len(params) > 0 {
@@ -72,7 +72,7 @@ func (m *Book) SearchBook(wd string, page, size int) (books []Book, cnt int, err
 
 	wd = "%" + wd + "%"
 
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	var count struct{ Cnt int }
 	err = o.Raw(sqlCount, wd, wd).QueryRow(&count)
 	if count.Cnt > 0 {
@@ -94,7 +94,7 @@ func (m *Book) GetBooksByIds(ids []int, fields ...string) (books []Book, err err
 		idArr = append(idArr, i)
 	}
 
-	rows, err := orm.NewOrm().QueryTable(TNBook()).Filter("book_id__in", idArr).All(&bs, fields...)
+	rows, err := GetOrm("w").QueryTable(TNBook()).Filter("book_id__in", idArr).All(&bs, fields...)
 	if rows > 0 {
 		bookMap := make(map[interface{}]Book)
 		for _, book := range bs {
@@ -110,7 +110,7 @@ func (m *Book) GetBooksByIds(ids []int, fields ...string) (books []Book, err err
 }
 
 func (m *Book) Insert() (err error) {
-	if _, err = orm.NewOrm().Insert(m); err != nil {
+	if _, err = GetOrm("w").Insert(m); err != nil {
 		return err
 	}
 
@@ -143,7 +143,7 @@ func (m *Book) Insert() (err error) {
 func (m *Book) Update(cols ...string) (err error) {
 	bk := NewBook()
 	bk.BookId = m.BookId
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	if err = o.Read(bk); err != nil {
 		return
 	}
@@ -153,15 +153,15 @@ func (m *Book) Update(cols ...string) (err error) {
 
 func (m *Book) Select(field string, value interface{}, cols ...string) (book *Book, err error) {
 	if len(cols) == 0 {
-		err = orm.NewOrm().QueryTable(TNBook()).Filter(field, value).One(m)
+		err = GetOrm("w").QueryTable(TNBook()).Filter(field, value).One(m)
 	} else {
-		err = orm.NewOrm().QueryTable(TNBook()).Filter(field, value).One(m, cols...)
+		err = GetOrm("w").QueryTable(TNBook()).Filter(field, value).One(m, cols...)
 	}
 	return m, err
 }
 
 func (m Book) SelectPage(pageIndex, pageSize, memberId int, PrivatelyOwned int) (books []*BookData, totalCount int, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	sql1 := "select count(b.book_id) as total_count from " + TNBook() + " as b left join " +
 		TNRelationship() + " as r on b.book_id=r.book_id and r.member_id = ? where r.relationship_id > 0  and b.privately_owned=" + strconv.Itoa(PrivatelyOwned)
 
@@ -213,7 +213,7 @@ func (book *Book) ToBookData() (m *BookData) {
 }
 
 func (m Book) RefreshDocumentCount(bookId int) {
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	docCount, err := o.QueryTable(TNDocuments()).Filter("book_id", bookId).Count()
 	if nil == err {
 		temp := NewBook()

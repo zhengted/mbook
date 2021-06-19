@@ -22,7 +22,7 @@ func (m *Category) TableName() string {
 }
 
 func (m *Category) GetCates(pid int, status int) (cates []Category, err error) {
-	qs := orm.NewOrm().QueryTable(TNCategory())
+	qs := GetOrm("r").QueryTable(TNCategory())
 	if pid > -1 {
 		qs = qs.Filter("pid", pid)
 	}
@@ -35,7 +35,7 @@ func (m *Category) GetCates(pid int, status int) (cates []Category, err error) {
 
 func (m *Category) Find(cid int) (cate Category) {
 	cate.Id = cid
-	orm.NewOrm().Read(&cate)
+	GetOrm("r").Read(&cate)
 	return cate
 }
 
@@ -45,7 +45,7 @@ func (m *Category) InsertMulti(pid int, cates string) (err error) {
 		return
 	}
 
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	for _, item := range slice {
 		if item = strings.TrimSpace(item); item != "" {
 			var cate = Category{
@@ -63,7 +63,7 @@ func (m *Category) InsertMulti(pid int, cates string) (err error) {
 
 func (m *Category) Delete(id int) (err error) {
 	var cate = Category{Id: id}
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	if err = o.Read(&cate); cate.Cnt > 0 {
 		return errors.New("删除失败，当前分类下的图书数量不为0，不允许删除分类")
 	}
@@ -75,7 +75,7 @@ func (m *Category) Delete(id int) (err error) {
 }
 
 func (m *Category) UpdateFields(id int, field, val string) (err error) {
-	_, err = orm.NewOrm().QueryTable(TNCategory()).Filter("id", id).Update(orm.Params{field: val})
+	_, err = GetOrm("w").QueryTable(TNCategory()).Filter("id", id).Update(orm.Params{field: val})
 	return
 }
 
@@ -97,7 +97,7 @@ func CountCategory() {
 	}()
 
 	var count []Count
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	sql := "select count(bc.id) cnt, bc.category_id from " + TNBookCategory() + " bc left join " + TNBook() + " b on b.book_id=bc.book_id where b.privately_owned=0 group by bc.category_id"
 	o.Raw(sql).QueryRows(&count)
 

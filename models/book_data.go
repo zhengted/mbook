@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"github.com/astaxie/beego/orm"
 	"mbook/common"
 	"time"
 )
@@ -50,7 +49,7 @@ func (m *BookData) SelectByIdentify(identify string, memberId int) (result *Book
 		return nil, errors.New("Invalid parameter")
 	}
 	book := NewBook()
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	err = o.QueryTable(TNBook()).Filter("identify", identify).One(book)
 	if err != nil {
 		return nil, err
