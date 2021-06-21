@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/astaxie/beego"
 	"mbook/models"
 	"mbook/utils"
 	"time"
+
+	"github.com/astaxie/beego"
 )
 
 type ElasticsearchController struct {
@@ -17,25 +18,28 @@ func (c *ElasticsearchController) Search() {
 }
 
 func (c *ElasticsearchController) Result() {
-	// 获取关键词
+	//获取关键词
 	wd := c.GetString("wd")
 	if "" == wd {
 		c.Redirect(beego.URLFor("ElasticsearchController.Search"), 302)
 	}
 	c.Data["Wd"] = wd
 
-	// 搜文档&书
+	//搜文档&图书
 	tab := c.GetString("tab", "doc")
 	c.Data["Tab"] = tab
+
+	//page&size
 	page, _ := c.GetInt("page", 1)
 	if page < 1 {
 		page = 1
 	}
 	size := 10
 
+	//开始搜索
 	now := time.Now()
 	if "doc" == tab {
-		ids, count, err := models.ElasticSearchDocutment(wd, size, page)
+		ids, count, err := models.ElasticSearchDocument(wd, size, page)
 		c.Data["totalRows"] = count
 		if nil == err && len(ids) > 0 {
 			c.Data["Docs"], _ = models.NewDocumentSearch().GetDocsById(ids)
@@ -48,9 +52,9 @@ func (c *ElasticsearchController) Result() {
 		}
 	}
 
-	if c.Data["totalRows"].(int) > size {
+	if c.Data["totalRows"].(int) > size { //有分页
 		urlSuffix := fmt.Sprintf("&tab=%v&wd=%v", tab, wd)
-		html := utils.NewPaginations(4, c.Data["totalRows"].(int), size, page, beego.URLFor("ElasticsrarchController.Result"), urlSuffix)
+		html := utils.NewPaginations(4, c.Data["totalRows"].(int), size, page, beego.URLFor("ElasticsearchController.Result"), urlSuffix)
 		c.Data["PageHtml"] = html
 	} else {
 		c.Data["PageHtml"] = ""

@@ -30,7 +30,7 @@ func HttpPostJson(url, body string) (*simplejson.Json, error) {
 			err = errors.New(response.Status + "; " + string(body))
 		} else {
 			bodyBytes, _ := ioutil.ReadAll(response.Body)
-			simplejson.NewJson(bodyBytes)
+			ret, err = simplejson.NewJson(bodyBytes)
 		}
 	}
 	return ret, err
