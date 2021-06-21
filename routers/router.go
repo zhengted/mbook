@@ -9,7 +9,7 @@ func init() {
 	//首页&分类&详情
 	beego.Router("/", &controllers.HomeController{}, "get:Index")
 	//beego.Router("/2", &controllers.HomeController{}, "get:Index2")
-	beego.Router("/explore", &controllers.ExploreController{}, "*:Index")
+	beego.Router("/explore/:cid", &controllers.ExploreController{}, "*:Index")
 	beego.Router("/books/:key", &controllers.DocumentController{}, "*:Index")
 
 	//编辑

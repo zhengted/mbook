@@ -4,6 +4,7 @@ import (
 	"github.com/astaxie/beego"
 	"mbook/models"
 	"mbook/utils"
+	"mbook/utils/pagecache"
 	"path/filepath"
 	"strings"
 )
@@ -15,6 +16,15 @@ func sysinit() {
 
 	// 注册前端使用函数
 	registerFunctions()
+
+	// 初始化pageCache
+	initPageCache()
+}
+
+func initPageCache() {
+	pagecache.BasePath = "./cache/staticpage"
+	pagecache.ExpireSec = 10
+	pagecache.InitCache()
 }
 
 func registerFunctions() {

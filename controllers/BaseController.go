@@ -8,6 +8,7 @@ import (
 	"mbook/common"
 	"mbook/models"
 	"mbook/utils"
+	"mbook/utils/pagecache"
 	"strings"
 	"time"
 )
@@ -25,8 +26,28 @@ type CookieRemember struct {
 	Time     time.Time
 }
 
+func (c *BaseController) Finish() {
+	controllerName, actionName := c.GetControllerAndAction()
+
+	if pagecache.NeedWrite(controllerName, actionName, c.Ctx.Input.Params()) {
+		render, err := c.RenderString()
+		if nil == err && len(render) > 0 {
+			pagecache.Write(controllerName, actionName, &render, c.Ctx.Input.Params())
+		}
+	}
+}
+
 // 每个子类Controller公用方法调用前，都执行一下Prepare方法
 func (c *BaseController) Prepare() {
+	controllerName, actionName := c.GetControllerAndAction()
+	if pagecache.InCacheList(controllerName, actionName) {
+		contentPtr, err := pagecache.Read(controllerName, actionName, c.Ctx.Input.Params())
+		if nil == err && len(*contentPtr) > 0 {
+			io.WriteString(c.Ctx.ResponseWriter, *contentPtr)
+			c.StopRun()
+		}
+	}
+
 	c.Member = models.NewMember()
 	c.EnableAnoymous = false
 

@@ -18,10 +18,14 @@ func (c *ExploreController) Index() {
 		cate      models.Category
 		urlPrefix = beego.URLFor("ExploreController.Index")
 	)
-	if cid, _ = c.GetInt("cid"); cid > 0 {
-		CateModel := new(models.Category)
-		cate = CateModel.Find(cid)
-		c.Data["Cate"] = cate
+
+	cidstr := c.Ctx.Input.Param(":cid")
+	if len(cidstr) > 0 {
+		if cid, _ = strconv.Atoi(cidstr); cid > 0 {
+			CateModel := new(models.Category)
+			cate = CateModel.Find(cid)
+			c.Data["Cate"] = cate
+		}
 	}
 
 	c.Data["Cid"] = cid
