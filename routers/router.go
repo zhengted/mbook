@@ -40,8 +40,8 @@ func init() {
 	beego.Router("/manager/icon-cate", &controllers.ManagerController{}, "post:UpdateCateIcon")
 
 	//搜索
-	beego.Router("/search", &controllers.SearchController{}, "get:Search")
-	beego.Router("/search/result", &controllers.SearchController{}, "get:Result")
+	beego.Router("/search", &controllers.ElasticsearchController{}, "get:Search")
+	beego.Router("/search/result", &controllers.ElasticsearchController{}, "get:Result")
 
 	//login
 	beego.Router("/login", &controllers.AccountController{}, "*:Login")

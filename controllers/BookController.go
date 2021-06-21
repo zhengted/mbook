@@ -313,6 +313,7 @@ func (c BookController) Release() {
 
 	go func() {
 		models.NewDocument().ReleaseContent(bookId, c.BaseUrl())
+		models.ElasticBuildIndex(bookId)
 	}()
 	c.JsonResult(0, "已发布")
 }
