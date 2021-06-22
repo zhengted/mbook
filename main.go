@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/toolbox"
 	_ "mbook/routers"
@@ -10,8 +9,7 @@ import (
 )
 
 func main() {
-	task := toolbox.NewTask("clear_expired_cache", "*/2 * * * * *", func() error {
-		fmt.Println("--delete cache--")
+	task := toolbox.NewTask("clear_expired_cache", "2 * * * * *", func() error {
 		pagecache.ClearExpireFile()
 		return nil
 	})

@@ -4,6 +4,7 @@ import (
 	"github.com/astaxie/beego"
 	"mbook/models"
 	"mbook/utils"
+	"mbook/utils/dynamiccache"
 	"mbook/utils/pagecache"
 	"path/filepath"
 	"strings"
@@ -19,6 +20,16 @@ func sysinit() {
 
 	// 初始化pageCache
 	initPageCache()
+
+	// 初始化动态缓存redis
+	initDynamicCache()
+}
+
+func initDynamicCache() {
+	dynamiccache.MaxOpen = 128
+	dynamiccache.MaxIdle = 128
+	dynamiccache.ExpireSec = 10
+	dynamiccache.InitCache()
 }
 
 func initPageCache() {

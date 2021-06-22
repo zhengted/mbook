@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"mbook/common"
 	"mbook/models"
+	"mbook/utils/dynamiccache"
 	"mbook/utils/store"
 	"net/http"
 	"os"
@@ -88,10 +89,31 @@ func (c *DocumentController) Index() {
 		tab = "default"
 	}
 	c.Data["Tab"] = tab
-	c.Data["Menu"], _ = new(models.Document).GetMenuTop(bookResult.BookId)
-
-	c.Data["Comments"], _ = new(models.Comments).BookComments(1, 30, bookResult.BookId)
+	//c.Data["Menu"], _ = new(models.Document).GetMenuTop(bookResult.BookId)
+	//c.Data["Comments"], _ = new(models.Comments).BookComments(1, 30, bookResult.BookId)
 	c.Data["MyScore"] = new(models.Score).BookScoreByUid(c.Member.MemberId, bookResult.BookId)
+
+	// 动态缓存逻辑
+	cachekeyDocidx := "dynamiccache_document_index_cdata:" + identify
+	cachekeyDocidxMenu := cachekeyDocidx + "_menu"
+	var dataMenu []*models.Document
+	err := dynamiccache.ReadStruct(cachekeyDocidxMenu, &dataMenu)
+	if err != nil {
+		dataMenu, _ = new(models.Document).GetMenuTop(bookResult.BookId)
+		dynamiccache.WriteStruct(cachekeyDocidxMenu, dataMenu)
+	}
+
+	c.Data["Menu"] = dataMenu
+
+	cachekeyDocidxComments := cachekeyDocidxMenu + "_comments"
+	var dataComments []models.BookCommentsResult
+	err = dynamiccache.ReadStruct(cachekeyDocidxComments, &dataComments)
+	if err != nil {
+		dataComments, _ = new(models.Comments).BookComments(1, 30, bookResult.BookId)
+		dynamiccache.WriteStruct(cachekeyDocidxComments, dataComments)
+	}
+	c.Data["Comments"] = dataComments
+
 }
 
 //阅读器页面
