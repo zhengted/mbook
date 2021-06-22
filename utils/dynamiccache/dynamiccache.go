@@ -82,8 +82,8 @@ func WriteString(key string, value string) error {
 func ReadString(key string) (string, error) {
 	res, err := rdsdo("GET", key)
 	if err == nil {
-		str, _ := redis.Strings(res, err)
-		return str[0], nil
+		str, _ := redis.String(res, err)
+		return str, nil
 	} else {
 		return "", err
 	}
